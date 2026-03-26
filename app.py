@@ -53,6 +53,12 @@ def inject_custom_styles():
             font-family: 'IBM Plex Sans', sans-serif;
         }
 
+        .block-container {
+            max-width: 1200px;
+            padding-top: 1.1rem;
+            padding-bottom: 2.2rem;
+        }
+
         h1, h2, h3 {
             font-family: 'Space Grotesk', sans-serif !important;
             letter-spacing: 0.2px;
@@ -61,10 +67,20 @@ def inject_custom_styles():
         [data-testid="stSidebar"] {
             background: linear-gradient(180deg, #f3f7ff 0%, #eef5ff 100%);
             border-right: 1px solid #d9e4f5;
+            padding-top: 0.4rem;
         }
 
-        /* Force readable sidebar typography regardless of Streamlit theme */
-        [data-testid="stSidebar"] * {
+        /* Keep sidebar text readable regardless of Streamlit base theme */
+        [data-testid="stSidebar"] p,
+        [data-testid="stSidebar"] label,
+        [data-testid="stSidebar"] span,
+        [data-testid="stSidebar"] h1,
+        [data-testid="stSidebar"] h2,
+        [data-testid="stSidebar"] h3,
+        [data-testid="stSidebar"] h4,
+        [data-testid="stSidebar"] h5,
+        [data-testid="stSidebar"] h6,
+        [data-testid="stSidebar"] div {
             color: #0f172a !important;
         }
 
@@ -75,11 +91,22 @@ def inject_custom_styles():
         [data-testid="stSidebar"] .stSelectbox [data-baseweb="select"] > div,
         [data-testid="stSidebar"] .stTextArea textarea,
         [data-testid="stSidebar"] .stSlider,
-        [data-testid="stSidebar"] .stRadio,
-        [data-testid="stSidebar"] .stCheckbox {
+        [data-testid="stSidebar"] .stRadio > div,
+        [data-testid="stSidebar"] .stCheckbox > label {
             background: #ffffff !important;
             border-color: #c7d7ee !important;
             color: #0f172a !important;
+            border-radius: 12px !important;
+        }
+
+        [data-testid="stSidebar"] .stRadio > div,
+        [data-testid="stSidebar"] .stSlider {
+            padding: 0.45rem 0.5rem;
+            border: 1px solid #d9e4f5;
+        }
+
+        [data-testid="stSidebar"] .stTextArea textarea {
+            min-height: 90px !important;
         }
 
         [data-testid="stSidebar"] .stButton > button {
@@ -88,6 +115,40 @@ def inject_custom_styles():
             border: none !important;
             font-weight: 700 !important;
             border-radius: 10px !important;
+            box-shadow: 0 8px 16px rgba(239, 68, 68, 0.22);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        [data-testid="stSidebar"] .stButton > button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 18px rgba(239, 68, 68, 0.28);
+        }
+
+        [data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] {
+            background: #ffffff !important;
+            border: 2px dashed #93c5fd !important;
+            border-radius: 14px !important;
+            padding: 0.7rem !important;
+        }
+
+        [data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] * {
+            color: #1e3a8a !important;
+        }
+
+        [data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] button {
+            background: linear-gradient(90deg, #ef4444, #fb7185) !important;
+            color: #ffffff !important;
+            border: none !important;
+            font-weight: 700 !important;
+            border-radius: 10px !important;
+            box-shadow: 0 8px 16px rgba(239, 68, 68, 0.22) !important;
+        }
+
+        [data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] button:hover {
+            background: linear-gradient(90deg, #ef4444, #fb7185) !important;
+            color: #ffffff !important;
+            transform: translateY(-1px);
+            box-shadow: 0 10px 18px rgba(239, 68, 68, 0.28) !important;
         }
 
         .hero {
@@ -142,7 +203,7 @@ def inject_custom_styles():
             background: linear-gradient(180deg, var(--bg-card) 0%, var(--bg-card-2) 100%);
             border: 1px solid #d9e6f7;
             border-radius: 16px;
-            padding: 0.9rem 1rem;
+            padding: 1rem 1.05rem;
             box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
             animation: fadeInUp 0.55s ease;
         }
@@ -208,6 +269,13 @@ def inject_custom_styles():
         .stDataFrame {
             border-radius: 10px;
             overflow: hidden;
+            border: 1px solid #d9e4f5;
+            background: #ffffff;
+        }
+
+        [data-testid="stAlert"] {
+            border-radius: 12px;
+            border: 1px solid #bfdbfe;
         }
 
         .stTabs [data-baseweb="tab-list"] {
@@ -366,28 +434,37 @@ def performance_summary_rows():
     return pd.DataFrame(rows)
 
 
+def get_target_policy(target, model_choice, use_tuned_threshold, manual_threshold):
+    if model_choice == "Best per Target":
+        model_key = results[target].get("best_model", "rf")
+    else:
+        model_key = "rf" if model_choice == "Random Forest" else "xgb"
+
+    threshold = float(results[target].get("best_threshold", 0.5)) if use_tuned_threshold else float(manual_threshold)
+    return model_key, threshold
+
+
+def predict_targets_for_feature_vector(X, model_choice, use_tuned_threshold, manual_threshold):
+    predictions = {}
+    for target in TOX21_TARGETS:
+        model_key, threshold = get_target_policy(target, model_choice, use_tuned_threshold, manual_threshold)
+        model = results[target][model_key]["model"]
+        prob = float(model.predict_proba(X)[0, 1])
+        predictions[target] = {
+            "probability": prob,
+            "threshold": threshold,
+            "model_used": model_key,
+        }
+    return predictions
+
+
 # ------------------------------- SIDEBAR -------------------------------------
 
-st.sidebar.header("Compound Input")
-st.sidebar.caption("Choose an example or paste your own SMILES")
-
-examples = {
-    "Custom": "",
-    "Aspirin": "CC(=O)Oc1ccccc1C(=O)O",
-    "Bisphenol A": "CC(c1ccc(O)cc1)(c1ccc(O)cc1)C",
-    "Caffeine": "Cn1cnc2c1c(=O)n(C)c(=O)n2C",
-    "Tamoxifen": "CCC(=C(c1ccccc1)c1ccc(OCCN(C)C)cc1)c1ccccc1",
-    "Atrazine": "CCNc1nc(Cl)nc(NC(C)C)n1",
-    "Ethanol": "CCO",
-}
-
-selected = st.sidebar.selectbox("Example molecules", list(examples.keys()), index=0)
-
-smiles_input = st.sidebar.text_area(
-    "SMILES",
-    value=examples[selected],
-    height=95,
-    placeholder="Example: CC(=O)Oc1ccccc1C(=O)O",
+st.sidebar.header("Screening")
+screening_mode = st.sidebar.radio(
+    "Mode",
+    ["Single Compound", "Batch Screening"],
+    index=0,
 )
 
 model_choice = st.sidebar.radio(
@@ -409,12 +486,39 @@ manual_threshold = st.sidebar.slider(
     step=0.05,
 )
 
-predict_btn = st.sidebar.button("Predict Toxicity", type="primary", use_container_width=True)
+if screening_mode == "Single Compound":
+    st.sidebar.header("Compound Input")
+    st.sidebar.caption("Choose an example or paste your own SMILES")
+
+    examples = {
+        "Custom": "",
+        "Aspirin": "CC(=O)Oc1ccccc1C(=O)O",
+        "Bisphenol A": "CC(c1ccc(O)cc1)(c1ccc(O)cc1)C",
+        "Caffeine": "Cn1cnc2c1c(=O)n(C)c(=O)n2C",
+        "Tamoxifen": "CCC(=C(c1ccccc1)c1ccc(OCCN(C)C)cc1)c1ccccc1",
+        "Atrazine": "CCNc1nc(Cl)nc(NC(C)C)n1",
+        "Ethanol": "CCO",
+    }
+
+    selected = st.sidebar.selectbox("Example molecules", list(examples.keys()), index=0)
+    smiles_input = st.sidebar.text_area(
+        "SMILES",
+        value=examples[selected],
+        height=95,
+        placeholder="Example: CC(=O)Oc1ccccc1C(=O)O",
+    )
+    run_btn = st.sidebar.button("Predict Toxicity", type="primary", use_container_width=True)
+else:
+    st.sidebar.header("Batch Input")
+    st.sidebar.caption("Upload a CSV file for multi-compound screening")
+    uploaded_file = st.sidebar.file_uploader("CSV file", type=["csv"])
+    batch_limit = st.sidebar.slider("Max rows to process", 10, 3000, 500, 10)
+    run_btn = st.sidebar.button("Run Batch Screening", type="primary", use_container_width=True)
 
 
 # ------------------------------- LANDING VIEW --------------------------------
 
-if not predict_btn:
+if screening_mode == "Single Compound" and not run_btn:
     perf_df = performance_summary_rows()
     best_mean_roc = perf_df[["RF ROC-AUC", "XGB ROC-AUC"]].max(axis=1).mean()
     best_target_idx = perf_df[["RF ROC-AUC", "XGB ROC-AUC"]].max(axis=1).idxmax()
@@ -472,6 +576,140 @@ if not predict_btn:
             """
         )
 
+elif screening_mode == "Batch Screening" and not run_btn:
+    st.markdown('<div class="section-card">', unsafe_allow_html=True)
+    st.markdown("### Batch Screening Mode")
+    st.info("Upload a CSV from the sidebar, then click **Run Batch Screening**.")
+    st.markdown(
+        """
+        Expected CSV format:
+        - Must include one SMILES column (for example: `smiles`, `SMILES`, `canonical_smiles`, `smi`)
+        - Additional metadata columns are allowed and will be preserved in your source file
+        """
+    )
+    st.dataframe(
+        pd.DataFrame(
+            {
+                "smiles": [
+                    "CC(=O)Oc1ccccc1C(=O)O",
+                    "CC(c1ccc(O)cc1)(c1ccc(O)cc1)C",
+                ],
+                "compound_id": ["cmpd_001", "cmpd_002"],
+            }
+        ),
+        use_container_width=True,
+        hide_index=True,
+    )
+    st.markdown("</div>", unsafe_allow_html=True)
+
+elif screening_mode == "Batch Screening" and run_btn:
+    if uploaded_file is None:
+        st.error("Please upload a CSV file before running batch screening.")
+        st.stop()
+
+    try:
+        batch_df = pd.read_csv(uploaded_file)
+    except Exception as exc:
+        st.error(f"Could not read CSV: {exc}")
+        st.stop()
+
+    if batch_df.empty:
+        st.error("Uploaded CSV is empty.")
+        st.stop()
+
+    candidate_cols = [
+        c for c in batch_df.columns
+        if str(c).strip().lower() in {"smiles", "canonical_smiles", "smi"}
+    ]
+    default_col = candidate_cols[0] if candidate_cols else batch_df.columns[0]
+    smiles_col = st.sidebar.selectbox("SMILES column", options=list(batch_df.columns), index=list(batch_df.columns).index(default_col))
+
+    data = batch_df.head(batch_limit).copy()
+    data[smiles_col] = data[smiles_col].astype(str).str.strip()
+
+    out_rows = []
+    prog = st.progress(0)
+    status = st.empty()
+
+    for idx, row in data.reset_index(drop=True).iterrows():
+        smi = row[smiles_col]
+        X, mol = smiles_to_features(smi)
+        if X is None:
+            out_rows.append(
+                {
+                    "row_id": idx,
+                    "smiles": smi,
+                    "status": "invalid_smiles",
+                    "overall_risk": "INVALID",
+                    "flagged_assays": np.nan,
+                    "mean_probability": np.nan,
+                    "top_endpoint": "",
+                    "top_endpoint_probability": np.nan,
+                }
+            )
+        else:
+            pred = predict_targets_for_feature_vector(X, model_choice, use_tuned_threshold, manual_threshold)
+            probs = {t: pred[t]["probability"] for t in TOX21_TARGETS}
+            flags = {t: int(pred[t]["probability"] >= pred[t]["threshold"]) for t in TOX21_TARGETS}
+
+            flagged_assays = int(sum(flags.values()))
+            mean_probability = float(np.mean(list(probs.values())))
+            top_endpoint = max(probs, key=probs.get)
+            top_endpoint_probability = float(probs[top_endpoint])
+
+            if flagged_assays == 0:
+                overall_risk = "LOW"
+            elif flagged_assays <= 3:
+                overall_risk = "MODERATE"
+            else:
+                overall_risk = "HIGH"
+
+            result_row = {
+                "row_id": idx,
+                "smiles": smi,
+                "status": "ok",
+                "overall_risk": overall_risk,
+                "flagged_assays": flagged_assays,
+                "mean_probability": round(mean_probability, 4),
+                "top_endpoint": top_endpoint,
+                "top_endpoint_probability": round(top_endpoint_probability, 4),
+            }
+            for t in TOX21_TARGETS:
+                result_row[f"prob_{t}"] = round(float(probs[t]), 4)
+            out_rows.append(result_row)
+
+        prog.progress((idx + 1) / len(data))
+        status.text(f"Processed {idx + 1}/{len(data)} rows")
+
+    result_df = pd.DataFrame(out_rows)
+    valid_df = result_df[result_df["status"] == "ok"].copy()
+
+    st.markdown('<div class="section-card">', unsafe_allow_html=True)
+    st.markdown("### Batch Screening Summary")
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Rows processed", f"{len(result_df)}")
+    c2.metric("Valid SMILES", f"{len(valid_df)}")
+    c3.metric("Invalid SMILES", f"{len(result_df) - len(valid_df)}")
+    high_count = int((valid_df["overall_risk"] == "HIGH").sum()) if len(valid_df) else 0
+    c4.metric("High-risk compounds", f"{high_count}")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    if len(valid_df):
+        ranked = valid_df.sort_values(["flagged_assays", "mean_probability"], ascending=[False, False]).reset_index(drop=True)
+        st.markdown("### Ranked Screening Results")
+        st.dataframe(ranked, use_container_width=True, hide_index=True)
+    else:
+        st.warning("No valid SMILES rows were found in the processed batch.")
+
+    csv_bytes = result_df.to_csv(index=False).encode("utf-8")
+    st.download_button(
+        "Download Screening Report (CSV)",
+        data=csv_bytes,
+        file_name="batch_screening_report.csv",
+        mime="text/csv",
+        use_container_width=True,
+    )
+
 else:
     if not smiles_input.strip():
         st.error("Please enter a SMILES string.")
@@ -482,22 +720,7 @@ else:
         st.error("Invalid SMILES string. Please verify the structure.")
         st.stop()
 
-    predictions = {}
-    for target in TOX21_TARGETS:
-        if model_choice == "Best per Target":
-            model_key = results[target].get("best_model", "rf")
-        else:
-            model_key = "rf" if model_choice == "Random Forest" else "xgb"
-
-        model = results[target][model_key]["model"]
-        prob = float(model.predict_proba(X)[0, 1])
-        threshold = float(results[target].get("best_threshold", 0.5)) if use_tuned_threshold else float(manual_threshold)
-
-        predictions[target] = {
-            "probability": prob,
-            "threshold": threshold,
-            "model_used": model_key,
-        }
+    predictions = predict_targets_for_feature_vector(X, model_choice, use_tuned_threshold, manual_threshold)
 
     pred_df = prediction_dataframe(predictions)
     n_toxic = int((pred_df["Risk"] == "HIGH").sum())
