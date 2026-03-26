@@ -1,6 +1,41 @@
+# Python virtual env
 venv/
-*.npy
-*.pkl
+.venv/
+
+# Python cache / build
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+
+# Local app/runtime state
 .streamlit/
+*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Dataset (keep local, do not push)
+tox21.csv
+
+# Generated model artifacts
+*.npy
+*.pkl
+
+# Generated evaluation reports
+model_performance_all_models.csv
+model_performance_best_models.csv
+
+# Generated plots
+model_roc_auc_comparison.png
+best_model_pr_auc_by_target.png
+optimal_thresholds_by_target.png
+global_feature_importance.png
+shap_bar_*.png
+shap_beeswarm_*.png
+shap_waterfall_*.png

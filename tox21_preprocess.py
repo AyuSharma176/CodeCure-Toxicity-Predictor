@@ -89,18 +89,13 @@ def compute_physchem_descriptors(df):
         except Exception:
             rows.append([np.nan] * len(PHYSCHEM_DESCRIPTORS))
     X = np.array(rows, dtype=np.float32)
-    X = SimpleImputer(strategy="median").fit_transform(X)
-    X = StandardScaler().fit_transform(X)
     print(f"  Shape: {X.shape}")
     return X
 
-def build_features(df):
-    X_fp   = compute_morgan_fingerprints(df)
-    X_desc = compute_physchem_descriptors(df)
-    X      = np.hstack([X_fp, X_desc]).astype(np.float32)
-    names  = ([f"morgan_{i}" for i in range(X_fp.shape[1])] + PHYSCHEM_DESCRIPTORS)
-    print(f"\n  Final feature matrix: {X.shape}")
-    return X, names
+def build_feature_blocks(df):
+    X_fp = compute_morgan_fingerprints(df)
+    X_desc_raw = compute_physchem_descriptors(df)
+    return X_fp, X_desc_raw
 
 # ── TARGETS ───────────────────────────────────────────────────────────────────
 
@@ -161,6 +156,20 @@ def split_dataset(X, y_df, test_size=0.2, random_state=42):
     print(f"  Train: {len(idx_train):,}  |  Test: {len(idx_test):,}")
     return splits
 
+def transform_descriptors(X_desc_raw, idx_train):
+    print("\n[Step 2c] Fitting descriptor preprocessing on train split only ...")
+    imputer = SimpleImputer(strategy="median")
+    scaler = StandardScaler()
+
+    X_desc_train = imputer.fit_transform(X_desc_raw[idx_train])
+    X_desc_train = scaler.fit_transform(X_desc_train)
+
+    X_desc_all = imputer.transform(X_desc_raw)
+    X_desc_all = scaler.transform(X_desc_all)
+
+    print("  Descriptor preprocessing fitted and applied.")
+    return X_desc_all.astype(np.float32), imputer, scaler
+
 # ── MAIN ──────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
@@ -173,18 +182,34 @@ if __name__ == "__main__":
 
     df              = load_tox21(data_dir)
     df              = validate_smiles(df)
-    X, feat_names   = build_features(df)
+    X_fp, X_desc_raw = build_feature_blocks(df)
     y_df, stats     = prepare_targets(df)
-    splits          = split_dataset(X, y_df)
+
+    idx = np.arange(len(df))
+    idx_train, idx_test = train_test_split(idx, test_size=0.2, random_state=42)
+
+    X_desc, imputer, scaler = transform_descriptors(X_desc_raw, idx_train)
+    X = np.hstack([X_fp, X_desc]).astype(np.float32)
+    feat_names = ([f"morgan_{i}" for i in range(X_fp.shape[1])] + PHYSCHEM_DESCRIPTORS)
+    print(f"\n  Final feature matrix: {X.shape}")
+
+    splits = split_dataset(X, y_df, test_size=0.2, random_state=42)
 
     # Save outputs
     np.save("X_train.npy",      splits["X_train"])
     np.save("X_test.npy",       splits["X_test"])
     np.save("feature_names.npy", np.array(feat_names))
+    with open("preprocess_artifacts.pkl", "wb") as f:
+        pickle.dump({
+            "imputer": imputer,
+            "scaler": scaler,
+            "physchem_descriptors": PHYSCHEM_DESCRIPTORS,
+            "morgan_radius": 2,
+            "morgan_n_bits": 2048,
+        }, f)
     with open("splits.pkl", "wb") as f:
         pickle.dump(splits, f)
     with open("target_stats.pkl", "wb") as f:
         pickle.dump(stats, f)
 
-    print("\n✓ Done! Saved: X_train.npy, X_test.npy, splits.pkl")
-    print("  Next step: python tox21_train.py")
+    print("\n✓ Done! Saved: X_train.npy, X_test.npy, splits.pkl, preprocess_artifacts.pkl")

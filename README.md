@@ -1,81 +1,161 @@
-# 🧬 CodeCure — Drug Toxicity Predictor
-### CodeCure AI Hackathon | Track A: Drug Toxicity Prediction
+# CodeCure: Multi-Target Drug Toxicity Predictor
 
-Predicts potential toxicity of chemical compounds across **12 Tox21 assay targets** using machine learning on molecular fingerprints and physicochemical descriptors.
+CodeCure predicts toxicity risk across 12 Tox21 assay targets from a SMILES string using molecular fingerprints, physicochemical descriptors, model selection, threshold tuning, and SHAP explainability.
 
----
+## Why This Project
+Unexpected toxicity is one of the biggest reasons drug candidates fail. This project provides an early screening workflow to estimate toxicity risk before expensive wet-lab stages.
 
-## 🎯 Problem Statement
-Drug development frequently fails due to unexpected toxicity. Early AI-based prediction of toxic compounds can significantly reduce development costs and improve patient safety.
+## Current Highlights
+- Mean ROC-AUC (best model per target): 0.851
+- Mean PR-AUC (best model per target): 0.517
+- Best target ROC-AUC: NR-PPAR-gamma (0.904)
+- Selected models across 12 targets: RandomForest (8), XGBoost (4)
+- Decision thresholds are tuned per target (not fixed at 0.50)
 
----
+## Updated Training Approach
+- Feature set: Morgan fingerprints (ECFP4, 2048 bits) and 10 physicochemical descriptors.
+- Leakage-safe preprocessing: descriptor imputer and scaler are fit on train split only.
+- Inference consistency: preprocessing artifacts are saved and reused in app inference.
+- Per-target model selection: evaluate RandomForest and XGBoost candidates, then select by validation PR-AUC then ROC-AUC.
+- Threshold tuning: optimize MCC on validation set per target and save tuned thresholds.
 
-## 🚀 Demo
-> Input any SMILES string → Get toxicity predictions across 12 targets → See SHAP explanation of WHY
-
-![App Screenshot](screenshots/app_demo.png)
-
----
-
-## 📊 Model Performance
-
-| Model | Mean ROC-AUC | Best Target |
-|-------|-------------|-------------|
-| Random Forest | **0.853** | NR-AR-LBD (0.890) |
-| XGBoost | 0.832 | SR-MMP (0.898) |
-
----
-
-## 🔬 Key Biological Insights
-
-From SHAP analysis across all 12 targets:
-
-- **Molecular Weight & MolLogP** are the strongest toxicity predictors — larger, more lipophilic molecules are consistently more toxic
-- **Ring Count & Aromatic Rings** strongly predict androgen receptor binding (NR-AR-LBD) — steroid-like multi-ring structures are high risk
-- **FractionCSP3** is protective — more 3D saturated molecules tend to be safer
-- **TPSA** influences membrane permeability and cellular uptake of toxic compounds
-
----
-
-## 🗂️ Project Structure
+## End-to-End Pipeline
+```text
+tox21.csv
+  -> SMILES validation (RDKit)
+  -> Feature extraction
+	  - Morgan fingerprints (2048)
+	  - Physicochemical descriptors (10)
+  -> Train/test split
+  -> Train-only descriptor preprocessing
+	  - fit imputer + scaler on train
+	  - transform train/test
+  -> Per-target model training (12 endpoints)
+	  - RandomForest candidates
+	  - XGBoost candidates
+  -> Validation-based selection
+	  - choose best model family per target
+	  - tune threshold by MCC
+  -> Test evaluation + report generation
+	  - model_performance_all_models.csv
+	  - model_performance_best_models.csv
+	  - performance graphs
+  -> SHAP explainability plots
+  -> Streamlit app inference
+	  - load models + preprocess_artifacts.pkl
+	  - predict endpoint risks from SMILES
 ```
+
+## Pipeline Diagram (Mermaid)
+```mermaid
+flowchart TD
+	A[tox21.csv] --> B[SMILES Validation - RDKit]
+	B --> C[Feature Extraction]
+	C --> C1[Morgan Fingerprints - 2048 bits]
+	C --> C2[Physicochemical Descriptors - 10]
+	C1 --> D[Train/Test Split]
+	C2 --> D
+	D --> E[Train-Only Descriptor Preprocessing]
+	E --> E1[Fit Imputer + Scaler on Train]
+	E1 --> E2[Transform Train and Test]
+	E2 --> F[Per-Target Training - 12 Endpoints]
+	F --> F1[RandomForest Candidates]
+	F --> F2[XGBoost Candidates]
+	F1 --> G[Validation Selection]
+	F2 --> G
+	G --> G1[Pick Best Family per Target]
+	G1 --> G2[Tune Threshold per Target - MCC]
+	G2 --> H[Test Evaluation + Reports]
+	H --> H1[CSV Metrics + Performance Plots]
+	G2 --> I[SHAP Explainability]
+	G2 --> J[Streamlit Inference App]
+	J --> K[SMILES Input to Endpoint Risk Output]
+```
+
+## App Inference Flow (Mermaid)
+```mermaid
+flowchart LR
+	A[User Inputs SMILES] --> B[RDKit Molecule Parsing]
+	B --> C{Valid SMILES?}
+	C -- No --> D[Show Validation Error]
+	C -- Yes --> E[Feature Generation]
+	E --> E1[Morgan Fingerprint]
+	E --> E2[Descriptor Calculation]
+	E2 --> E3[Apply Saved Imputer + Scaler]
+	E1 --> F[Final Feature Vector]
+	E3 --> F
+	F --> G[Per-Target Model Inference x12]
+	G --> H[Apply Tuned Thresholds]
+	H --> I[Risk Summary + Endpoint Table]
+	I --> J[Charts + SHAP Visuals + Diagnostics]
+```
+
+## Folder Structure
+```text
 CodeCure/
-├── tox21_preprocess.py   # Data loading, SMILES validation, feature extraction
-├── tox21_train.py        # XGBoost + Random Forest training across 12 targets
-├── tox21_explain.py      # SHAP feature importance + waterfall plots
-├── app.py                # Streamlit prediction interface
-└── README.md
+|-- .gitignore
+|-- tox21_preprocess.py
+|-- tox21_train.py
+|-- tox21_explain.py
+|-- app.py
+|-- tox21.csv
+|-- requirements.txt
+|-- README.md
+|-- feature_names.npy
+|-- X_train.npy
+|-- X_test.npy
+|-- splits.pkl
+|-- target_stats.pkl
+|-- models.pkl
+|-- preprocess_artifacts.pkl
+|-- model_performance_all_models.csv
+|-- model_performance_best_models.csv
+|-- model_roc_auc_comparison.png
+|-- best_model_pr_auc_by_target.png
+|-- optimal_thresholds_by_target.png
+|-- global_feature_importance.png
+|-- shap_bar_NR_AR_LBD.png
+|-- shap_beeswarm_NR_AR_LBD.png
+|-- shap_waterfall_NR_AR_LBD.png
+|-- screenshots/
+`-- venv/
 ```
 
-## ⚙️ Pipeline
-```
-Tox21 Dataset (12k compounds)
-        ↓
-SMILES Validation (RDKit)
-        ↓
-Feature Extraction
-  ├── Morgan Fingerprints (ECFP4, 2048 bits)
-  └── Physicochemical Descriptors (MolWt, LogP, TPSA...)
-        ↓
-Model Training (per target, class-imbalance handled)
-  ├── Random Forest (class_weight balanced)
-  └── XGBoost (scale_pos_weight)
-        ↓
-SHAP Explainability → Feature Attribution
-        ↓
-Streamlit Prediction App
-```
+## Key Output Artifacts
+- Models and metadata: models.pkl, splits.pkl, preprocess_artifacts.pkl
+- Performance reports: model_performance_all_models.csv, model_performance_best_models.csv
+- Performance visuals: model_roc_auc_comparison.png, best_model_pr_auc_by_target.png, optimal_thresholds_by_target.png
+- Explainability visuals: global_feature_importance.png, shap_bar_NR_AR_LBD.png, shap_beeswarm_NR_AR_LBD.png, shap_waterfall_NR_AR_LBD.png
 
-## 🛠️ Setup
+## Performance Visuals
+
+### ROC-AUC by Target and Model
+![ROC-AUC Comparison](model_roc_auc_comparison.png)
+
+### Best Model PR-AUC by Target
+![PR-AUC by Target](best_model_pr_auc_by_target.png)
+
+### Tuned Decision Thresholds
+![Thresholds by Target](optimal_thresholds_by_target.png)
+
+## Explainability Visuals
+
+### Global Feature Importance
+![Global Feature Importance](global_feature_importance.png)
+
+### SHAP Example (NR-AR-LBD)
+![SHAP Bar NR-AR-LBD](shap_bar_NR_AR_LBD.png)
+
+## Setup
 ```bash
-git clone https://github.com/YOURUSERNAME/CodeCure-Toxicity-Predictor
-cd CodeCure-Toxicity-Predictor
 python -m venv venv
 venv\Scripts\activate
-pip install rdkit scikit-learn xgboost shap streamlit pandas numpy matplotlib seaborn
+pip install -r requirements.txt
 ```
 
-Download [Tox21 dataset](https://www.kaggle.com/datasets/epicskills/tox21-dataset) and place CSV in project folder, then:
+## Run Pipeline
+Make sure tox21.csv is in the project root, then run:
+
 ```bash
 python tox21_preprocess.py
 python tox21_train.py
@@ -83,43 +163,17 @@ python tox21_explain.py
 streamlit run app.py
 ```
 
-## 📦 Dataset
-- **Primary:** [Tox21 Dataset](https://www.kaggle.com/datasets/epicskills/tox21-dataset) — ~12,000 compounds, 12 toxicity assays
-- **Features:** 2,058 total (2,048 Morgan fingerprint bits + 10 physicochemical descriptors)
+## Dataset
+- Source: https://www.kaggle.com/datasets/epicskills/tox21-dataset
+- About 12,000 compounds with 12 toxicity endpoints
 
-## 🧪 Example Predictions
+## Streamlit App Features
+- Predict toxicity from any valid SMILES string
+- Best-model-per-target inference option
+- Tuned per-target thresholding option
+- Risk summary with endpoint-level table and charts
+- SHAP-based global and local explanation images
 
-| Compound | Known Risk | Our Prediction |
-|----------|-----------|----------------|
-| Bisphenol A | Endocrine disruptor | HIGH RISK |
-| Aspirin | Safe at normal doses | LOW RISK |
-| Tamoxifen | ER modulator | MODERATE RISK |
-| Atrazine | Herbicide / toxic | HIGH RISK |
-
-## 👥 Team
-Built for CodeCure AI Hackathon — Track A
-```
-
----
-
-**Step 3 — Take screenshots (5 mins)**
-
-Create a `screenshots/` folder and take 3 screenshots of your app:
-- The main dashboard with model performance table
-- A prediction result for Bisphenol A (high risk compound)
-- The SHAP plots section
-
-Add them to your README.
-
----
-
-**Step 4 — Final checklist before submission**
-```
-✅ tox21_preprocess.py
-✅ tox21_train.py
-✅ tox21_explain.py
-✅ app.py
-✅ README.md with results table
-✅ requirements.txt
-✅ SHAP plots in repo
-✅ GitHub repo public
+## Notes
+- For reproducible results, use the same environment and dependencies from requirements.txt.
+- If generated images are missing, rerun tox21_train.py and tox21_explain.py.

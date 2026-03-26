@@ -12,6 +12,9 @@ matplotlib.use("Agg")  # non-interactive backend for saving files
 import warnings
 warnings.filterwarnings("ignore")
 
+RANDOM_STATE = 42
+np.random.seed(RANDOM_STATE)
+
 # ── LOAD DATA ─────────────────────────────────────────────────────────────────
 
 print("Loading models and data ...")
@@ -34,7 +37,8 @@ print("\nRunning SHAP analysis (this takes ~2 minutes) ...")
 for target in EXPLAIN_TARGETS:
     print(f"\n  Explaining {target} ...")
 
-    model    = results[target]["rf"]["model"]
+    model_key = results[target].get("best_model", "rf")
+    model = results[target][model_key]["model"]
     X_test   = splits["targets"][target]["X_test"]
     y_test   = splits["targets"][target]["y_test"]
 
@@ -158,4 +162,3 @@ for name in physchem_names:
         print(f"  {name:<22} {importance_mean[idx]:>12.6f}")
 
 print("\n✓ All SHAP plots saved!")
-print("Next step: python app.py  (Streamlit UI)")
