@@ -130,21 +130,21 @@ CodeCure/
 ## Performance Visuals
 
 ### ROC-AUC by Target and Model
-<img src="screenshots/perf_roc_auc_comparison.png" alt="ROC-AUC Comparison" width="900" />
+<img src="screenshots/perf_roc_auc_comparison.png" alt="ROC-AUC Comparison" width="760" />
 
 ### Best Model PR-AUC by Target
-<img src="screenshots/perf_pr_auc_best_model.png" alt="PR-AUC by Target" width="900" />
+<img src="screenshots/perf_pr_auc_best_model.png" alt="PR-AUC by Target" width="760" />
 
 ### Tuned Decision Thresholds
-<img src="screenshots/perf_tuned_thresholds.png" alt="Thresholds by Target" width="900" />
+<img src="screenshots/perf_tuned_thresholds.png" alt="Thresholds by Target" width="760" />
 
 ## Explainability Visuals
 
 ### Global Feature Importance
-<img src="screenshots/explain_global_feature_importance.png" alt="Global Feature Importance" width="900" />
+<img src="screenshots/explain_global_feature_importance.png" alt="Global Feature Importance" width="760" />
 
 ### SHAP Example (NR-AR-LBD)
-<img src="screenshots/explain_shap_bar_nr_ar_lbd.png" alt="SHAP Bar NR-AR-LBD" width="720" />
+<img src="screenshots/explain_shap_bar_nr_ar_lbd.png" alt="SHAP Bar NR-AR-LBD" width="620" />
 
 ## Setup
 ```bash
