@@ -39,3 +39,7 @@ global_feature_importance.png
 shap_bar_*.png
 shap_beeswarm_*.png
 shap_waterfall_*.png
+
+# Keep README showcase images
+!screenshots/
+!screenshots/*.png
