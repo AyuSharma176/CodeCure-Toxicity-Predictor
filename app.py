@@ -53,6 +53,15 @@ def inject_custom_styles():
             font-family: 'IBM Plex Sans', sans-serif;
         }
 
+        /* Remove Streamlit's default black top bar */
+        [data-testid="stHeader"] {
+            display: none;
+        }
+
+        [data-testid="stToolbar"] {
+            display: none;
+        }
+
         .block-container {
             max-width: 1200px;
             padding-top: 1.1rem;
