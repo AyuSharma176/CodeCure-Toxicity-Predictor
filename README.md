@@ -1,6 +1,6 @@
-# CodeCure: Multi-Target Drug Toxicity Predictor
+# ToxGuard: Multi-Target Drug Toxicity Predictor
 
-CodeCure predicts toxicity risk across 12 Tox21 assay targets from a SMILES string using molecular fingerprints, physicochemical descriptors, model selection, threshold tuning, and SHAP explainability.
+ToxGuard predicts toxicity risk across 12 Tox21 assay targets from a SMILES string using molecular fingerprints, physicochemical descriptors, model selection, threshold tuning, and SHAP explainability.
 
 ## Why This Project
 Unexpected toxicity is one of the biggest reasons drug candidates fail. This project provides an early screening workflow to estimate toxicity risk before expensive wet-lab stages.
@@ -92,7 +92,7 @@ flowchart LR
 
 ## Folder Structure
 ```text
-CodeCure/
+ToxGuard/
 |-- .gitignore
 |-- tox21_preprocess.py
 |-- tox21_train.py

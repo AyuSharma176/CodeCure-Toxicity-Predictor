@@ -19,7 +19,7 @@ warnings.filterwarnings("ignore")
 # ------------------------------- PAGE CONFIG ---------------------------------
 
 st.set_page_config(
-    page_title="CodeCure - Drug Toxicity Predictor",
+    page_title="ToxGuard - Drug Toxicity Predictor",
     page_icon="🧬",
     layout="wide",
 )
@@ -335,7 +335,7 @@ inject_custom_styles()
 st.markdown(
     """
     <div class="hero">
-      <h1>CodeCure Toxicity Intelligence</h1>
+      <h1>ToxGuard Toxicity Intelligence</h1>
       <p>Predict toxicological risk across 12 Tox21 targets with tuned thresholds, model selection, and explainability visuals.</p>
     </div>
     """,
