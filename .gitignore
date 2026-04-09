@@ -26,6 +26,9 @@ tox21.csv
 # Generated model artifacts
 *.npy
 *.pkl
+!feature_names.npy
+!models.pkl
+!preprocess_artifacts.pkl
 
 # Generated evaluation reports
 model_performance_all_models.csv

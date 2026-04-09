@@ -1,6 +1,7 @@
 import io
 import pickle
 import warnings
+from pathlib import Path
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -18,6 +19,9 @@ except Exception:
 
 matplotlib.use("Agg")
 warnings.filterwarnings("ignore")
+
+APP_DIR = Path(__file__).resolve().parent
+REQUIRED_ARTIFACTS = ["models.pkl", "preprocess_artifacts.pkl", "feature_names.npy"]
 
 
 # ------------------------------- PAGE CONFIG ---------------------------------
@@ -351,21 +355,32 @@ st.markdown(
 
 @st.cache_resource
 def load_models():
-    with open("models.pkl", "rb") as f:
+    with open(APP_DIR / "models.pkl", "rb") as f:
         return pickle.load(f)
 
 
 @st.cache_resource
 def load_preprocess_artifacts():
-    with open("preprocess_artifacts.pkl", "rb") as f:
+    with open(APP_DIR / "preprocess_artifacts.pkl", "rb") as f:
         return pickle.load(f)
 
 
 @st.cache_resource
 def load_feature_names():
-    return list(np.load("feature_names.npy", allow_pickle=True))
+    return list(np.load(APP_DIR / "feature_names.npy", allow_pickle=True))
 
 
+def validate_required_artifacts():
+    missing = [name for name in REQUIRED_ARTIFACTS if not (APP_DIR / name).exists()]
+    if missing:
+        st.error("Required model files are missing in this deployment.")
+        st.markdown("Please commit and push these files to your repository root:")
+        for name in missing:
+            st.markdown(f"- `{name}`")
+        st.stop()
+
+
+validate_required_artifacts()
 results = load_models()
 prep_artifacts = load_preprocess_artifacts()
 feat_names = load_feature_names()
