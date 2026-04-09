@@ -8,9 +8,13 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 from rdkit import Chem
-from rdkit.Chem import Draw
 from rdkit.Chem.rdFingerprintGenerator import GetMorganGenerator
 from rdkit.ML.Descriptors import MoleculeDescriptors
+
+try:
+    from rdkit.Chem import Draw
+except Exception:
+    Draw = None
 
 matplotlib.use("Agg")
 warnings.filterwarnings("ignore")
@@ -393,6 +397,8 @@ def smiles_to_features(smiles):
 
 
 def mol_to_image(mol, size=(420, 300)):
+    if Draw is None:
+        return None
     img = Draw.MolToImage(mol, size=size)
     buf = io.BytesIO()
     img.save(buf, format="PNG")
@@ -763,7 +769,12 @@ else:
 
     with left:
         st.subheader("Molecule")
-        st.image(mol_to_image(mol), use_container_width=True)
+        mol_img = mol_to_image(mol)
+        if mol_img is not None:
+            st.image(mol_img, use_container_width=True)
+        else:
+            st.info("2D molecule rendering is unavailable in this deployment environment.")
+            st.code(Chem.MolToSmiles(mol), language="text")
 
         calc = MoleculeDescriptors.MolecularDescriptorCalculator(PHYSCHEM_DESCRIPTORS)
         props = dict(zip(PHYSCHEM_DESCRIPTORS, calc.CalcDescriptors(mol)))

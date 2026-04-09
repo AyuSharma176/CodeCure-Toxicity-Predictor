@@ -177,3 +177,14 @@ streamlit run app.py
 ## Notes
 - For reproducible results, use the same environment and dependencies from requirements.txt.
 - If generated images are missing, rerun tox21_train.py and tox21_explain.py.
+
+## Deploy on Streamlit Community Cloud
+1. Push this project to a GitHub repository.
+2. Go to Streamlit Community Cloud and click Create app.
+3. Select your repository, branch, and set the main file path to app.py.
+4. Keep these deployment files in the repository root:
+	- requirements.txt (UTF-8 encoding)
+	- runtime.txt (python-3.12.10)
+5. Click Deploy.
+
+If deployment fails during dependency install, check the build logs and verify the versions in requirements.txt are available for Linux and Python 3.12.
